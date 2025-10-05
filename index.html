@@ -416,6 +416,39 @@
       align-items: center;
       gap: 5px;
     }
+ /* 輸入框錯誤狀態 */
+input.error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* 模態窗口輸入框樣式 */
+.modal-body input[type="text"] {
+  font-size: 1.2rem;
+  padding: 15px;
+  border: 2px solid var(--light-gray);
+  border-radius: 10px;
+  width: 100%;
+  transition: var(--transition);
+}
+
+.modal-body input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(74, 111, 165, 0.2);
+}
+
+/* 按鈕禁用狀態 */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}   
   </style>
 </head>
 <body>
@@ -522,7 +555,34 @@
       </div>
     </div>
   </div>
-
+<!-- 另存新食譜模態窗口 -->
+<div class="modal-overlay" id="saveAsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-copy"></i> 另存新食譜</h3>
+      <button class="modal-close" onclick="closeSaveAsModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="newRecipeName"><i class="fas fa-pencil-alt"></i> 新食譜名稱</label>
+        <input type="text" id="newRecipeName" placeholder="請輸入新食譜名稱..." style="font-size: 1.2rem; padding: 15px;">
+      </div>
+      
+      <div class="info-box">
+        <p><i class="fas fa-info-circle"></i> 這將創建當前食譜的一個副本，原食譜保持不變。</p>
+      </div>
+      
+      <div class="btn-group" style="margin-top: 20px;">
+        <button class="btn btn-success" onclick="confirmSaveAs()" id="confirmSaveAsBtn">
+          <i class="fas fa-check"></i> 確認另存
+        </button>
+        <button class="btn btn-secondary" onclick="closeSaveAsModal()">
+          <i class="fas fa-times"></i> 取消
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
   <div class="container">
     <div class="header">
       <h1><i class="fas fa-utensils"></i> TENG食譜管理系統 v3.1 - 離線版</h1>
@@ -1109,88 +1169,155 @@
     }
 
     // 另存新食譜
-    function saveAsNewRecipe() {
-      const originalTitle = editingTitle;
-      const newTitle = prompt("請輸入新食譜名稱：", editingTitle ? editingTitle + " - 副本" : "");
-      
-      if (!newTitle || newTitle.trim() === "") {
-        showNotification("新食譜名稱不能為空", 'error');
-        return;
-      }
-      
-      if (allRecipes.some(recipe => recipe.title === newTitle)) {
-        showNotification("食譜名稱已存在，請使用其他名稱", 'error');
-        return;
-      }
-      
-      const currentTitle = document.getElementById("title").value;
-      const currentSteps = document.getElementById("steps").value;
-      const currentBakingInfo = {
-        topHeat: document.getElementById('top-heat').value, 
-        bottomHeat: document.getElementById('bottom-heat').value,
-        time: document.getElementById('baking-time').value, 
-        convection: document.getElementById('convection').checked,
-        steam: document.getElementById('steam').checked
-      };
-      
-      const rows = document.querySelectorAll(".ingredient-grid");
-      const currentIngredients = [];
-      
-      rows.forEach(row => {
-        const foodName = row.children[1].value;
-        if (!foodName) return;
-        
-        const percentValue = row.children[3].value || "";
-        let percentNum = "";
-        
-        if (percentValue && percentValue !== "-") {
-          const cleanValue = percentValue.replace("%", "");
-          percentNum = parseFloat(cleanValue) / 100;
-        }
-        
-        currentIngredients.push({
-          group: row.children[0].value, 
-          name: foodName, 
-          weight: parseFloat(row.children[2].value) || 0,
-          percent: percentNum, 
-          desc: row.children[4].value.trim()
-        });
-      });
-      
-      showSaveProgress();
-      
-      const timestamp = new Date().toISOString();
-      const recipeData = {
-        title: newTitle,
-        ingredients: currentIngredients,
-        steps: currentSteps,
-        timestamp: timestamp,
-        baking: currentBakingInfo
-      };
+// 打開另存新食譜模態窗口
+function saveAsNewRecipe() {
+  if (!editingTitle) {
+    showNotification('請先載入要複製的食譜', 'error');
+    return;
+  }
+  
+  // 設置預設名稱
+  const defaultName = editingTitle + ' - 副本';
+  document.getElementById('newRecipeName').value = defaultName;
+  
+  // 清空之前的錯誤狀態
+  document.getElementById('newRecipeName').classList.remove('error');
+  
+  // 顯示模態窗口
+  document.getElementById('saveAsModal').classList.add('active');
+  
+  // 聚焦到輸入框並選擇文本
+  setTimeout(() => {
+    const input = document.getElementById('newRecipeName');
+    input.focus();
+    input.select();
+  }, 300);
+}
 
-      allRecipes.push(recipeData);
-      
-      if (saveAllData()) {
-        showNotification(`已另存新食譜: ${newTitle}`, 'success');
-        
-        editingTitle = null;
-        document.getElementById("saveBtn").innerHTML = '<i class="fas fa-save"></i> 儲存食譜';
-        document.getElementById("saveBtn").onclick = saveRecipe;
-        document.getElementById("saveAsBtn").style.display = 'none';
-        
-        document.getElementById("title").value = newTitle;
-        
-        loadRecipes();
-        switchTab("browse");
-        
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-        }, 100);
-      }
-      
-      hideSaveProgress();
+// 關閉另存新食譜模態窗口
+function closeSaveAsModal() {
+  document.getElementById('saveAsModal').classList.remove('active');
+}
+
+// 確認另存新食譜
+function confirmSaveAs() {
+  const newTitle = document.getElementById('newRecipeName').value.trim();
+  const inputElement = document.getElementById('newRecipeName');
+  
+  // 驗證輸入
+  if (!newTitle) {
+    inputElement.classList.add('error');
+    showNotification('新食譜名稱不能為空', 'error');
+    return;
+  }
+  
+  // 檢查食譜名稱是否已存在
+  if (allRecipes.some(recipe => recipe.title === newTitle)) {
+    inputElement.classList.add('error');
+    showNotification('食譜名稱已存在，請使用其他名稱', 'error');
+    return;
+  }
+  
+  // 移除錯誤狀態
+  inputElement.classList.remove('error');
+  
+  // 禁用按鈕避免重複點擊
+  const confirmBtn = document.getElementById('confirmSaveAsBtn');
+  confirmBtn.disabled = true;
+  confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 處理中...';
+  
+  // 收集當前表單數據
+  const currentTitle = document.getElementById("title").value;
+  const currentSteps = document.getElementById("steps").value;
+  const currentBakingInfo = {
+    topHeat: document.getElementById('top-heat').value, 
+    bottomHeat: document.getElementById('bottom-heat').value,
+    time: document.getElementById('baking-time').value, 
+    convection: document.getElementById('convection').checked,
+    steam: document.getElementById('steam').checked
+  };
+  
+  const rows = document.querySelectorAll(".ingredient-grid");
+  const currentIngredients = [];
+  
+  rows.forEach(row => {
+    const foodName = row.children[1].value;
+    if (!foodName) return;
+    
+    const percentValue = row.children[3].value || "";
+    let percentNum = "";
+    
+    if (percentValue && percentValue !== "-") {
+      const cleanValue = percentValue.replace("%", "");
+      percentNum = parseFloat(cleanValue) / 100;
     }
+    
+    currentIngredients.push({
+      group: row.children[0].value, 
+      name: foodName, 
+      weight: parseFloat(row.children[2].value) || 0,
+      percent: percentNum, 
+      desc: row.children[4].value.trim()
+    });
+  });
+  
+  showSaveProgress();
+  
+  const timestamp = new Date().toISOString();
+  const recipeData = {
+    title: newTitle,
+    ingredients: currentIngredients,
+    steps: currentSteps,
+    timestamp: timestamp,
+    baking: currentBakingInfo
+  };
 
+  allRecipes.push(recipeData);
+  
+  if (saveAllData()) {
+    showNotification(`已另存新食譜: ${newTitle}`, 'success');
+    
+    // 關閉模態窗口
+    closeSaveAsModal();
+    
+    // 重置表單狀態
+    editingTitle = null;
+    document.getElementById("saveBtn").innerHTML = '<i class="fas fa-save"></i> 儲存食譜';
+    document.getElementById("saveBtn").onclick = saveRecipe;
+    document.getElementById("saveAsBtn").style.display = 'none';
+    
+    // 更新表單中的食譜名稱
+    document.getElementById("title").value = newTitle;
+    
+    // 重新載入食譜列表
+    loadRecipes();
+    switchTab("browse");
+    
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 100);
+  }
+  
+  hideSaveProgress();
+  
+  // 重新啟用按鈕
+  setTimeout(() => {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = '<i class="fas fa-check"></i> 確認另存';
+  }, 1000);
+}
+
+// 為輸入框添加 Enter 鍵支持
+document.addEventListener('DOMContentLoaded', function() {
+  const newRecipeNameInput = document.getElementById('newRecipeName');
+  if (newRecipeNameInput) {
+    newRecipeNameInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        confirmSaveAs();
+      }
+    });
+  }
+});
     // 重置表單
     function resetForm() {
       editingTitle = null;
