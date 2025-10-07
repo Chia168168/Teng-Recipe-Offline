@@ -1028,23 +1028,46 @@ input.error {
       });
     }
 
-    function formatPercentDisplay(value) {
-      let formatted = parseFloat(value.toFixed(10)).toString();
-      if (formatted.indexOf('.') !== -1) {
-        formatted = formatted.replace(/\.?0+$/, '');
-      }
-      return formatted + '%';
+// 百分比顯示格式化
+function formatPercentDisplay(value) {
+  if (value === '' || value === null || value === undefined) return '';
+  
+  let numericValue;
+  if (typeof value === 'string') {
+    // 如果是百分比字符串，去掉百分號轉為數字
+    if (value.includes('%')) {
+      numericValue = parseFloat(value.replace('%', ''));
+    } else {
+      numericValue = parseFloat(value);
     }
+  } else {
+    numericValue = value;
+  }
+  
+  if (isNaN(numericValue)) return '';
+  
+  // 將小數轉換為百分比顯示
+  const percentValue = numericValue * 100;
+  let formatted = parseFloat(percentValue.toFixed(10)).toString();
+  
+  if (formatted.indexOf('.') !== -1) {
+    formatted = formatted.replace(/\.?0+$/, '');
+  }
+  
+  return formatted + '%';
+}
 
-    function formatPercentFrontend(p) {
-      if (!p) return '';
-      if (typeof p === 'string' && p.includes('%')) {
-        return p;
-      }
-      const numValue = parseFloat(p);
-      if (isNaN(numValue)) return '';
-      return formatPercentDisplay(numValue);
-    }
+function formatPercentFrontend(p) {
+  if (!p) return '';
+  if (typeof p === 'string' && p.includes('%')) {
+    return p;
+  }
+  
+  const numValue = parseFloat(p);
+  if (isNaN(numValue)) return '';
+  
+  return formatPercentDisplay(numValue);
+}
 
     // HTML 轉義
     function escapeHtml(s) { 
@@ -1538,52 +1561,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 匯出 CSV
-    function exportCSV() {
-        if (!allRecipes.length) { 
-          showNotification("沒有資料可匯出", 'warning'); 
-          return; 
-        }
-        
-        let csvContent = "=== 食譜數據 ===\n";
-        csvContent += "食譜名稱,分組,食材,重量 (g),百分比,說明,步驟,建立時間,上火溫度,下火溫度,烘烤時間,旋風,蒸汽\n";
-        
-        allRecipes.forEach(recipe => {
-            const baking = recipe.baking || {};
-            recipe.ingredients.forEach(ing => {
-                const percentValue = ing.percent ? (parseFloat(ing.percent) * 100).toFixed(2) + '%' : '';
-                const stepsEscaped = (recipe.steps || '').replace(/\n/g, '[[NEWLINE]]').replace(/"/g, '""');
-                const descEscaped = (ing.desc || '').replace(/"/g, '""');
-                
-                csvContent += `"${recipe.title}","${ing.group}","${ing.name}",${ing.weight},${percentValue},"${descEscaped}","${stepsEscaped}",${recipe.timestamp},${baking.topHeat || ''},${baking.bottomHeat || ''},${baking.time || ''},${baking.convection ? '是':'否'},${baking.steam ? '是':'否'}\n`;
-            });
-        });
-        
-        csvContent += "\n=== 食材資料庫 ===\n";
-        csvContent += "食材名稱,含水率\n";
-        
-        const customIngredients = getCustomIngredients();
-        customIngredients.forEach(ing => {
-            csvContent += `"${ing.name}",${ing.hydration}\n`;
-        });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        const fileName = "食譜備份_" + new Date().toISOString().slice(0,10).replace(/-/g, "") + ".csv";
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', fileName);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-        
-        showNotification('CSV 檔案已匯出', 'success');
+// 匯出 CSV
+function exportCSV() {
+    if (!allRecipes.length) { 
+      showNotification("沒有資料可匯出", 'warning'); 
+      return; 
     }
+    
+    let csvContent = "=== 食譜數據 ===\n";
+    csvContent += "食譜名稱,分組,食材,重量 (g),百分比,說明,步驟,建立時間,上火溫度,下火溫度,烘烤時間,旋風,蒸汽\n";
+    
+    allRecipes.forEach(recipe => {
+        const baking = recipe.baking || {};
+        recipe.ingredients.forEach(ing => {
+            // 修復百分比格式：確保匯出時是小數格式，而不是百分比字符串
+            const percentValue = ing.percent ? parseFloat(ing.percent) : '';
+            
+            const stepsEscaped = (recipe.steps || '').replace(/\n/g, '[[NEWLINE]]').replace(/"/g, '""');
+            const descEscaped = (ing.desc || '').replace(/"/g, '""');
+            
+            csvContent += `"${recipe.title}","${ing.group}","${ing.name}",${ing.weight},${percentValue},"${descEscaped}","${stepsEscaped}",${recipe.timestamp},${baking.topHeat || ''},${baking.bottomHeat || ''},${baking.time || ''},${baking.convection ? '是':'否'},${baking.steam ? '是':'否'}\n`;
+        });
+    });
+    
+    csvContent += "\n=== 食材資料庫 ===\n";
+    csvContent += "食材名稱,含水率\n";
+    
+    const customIngredients = getCustomIngredients();
+    customIngredients.forEach(ing => {
+        csvContent += `"${ing.name}",${ing.hydration}\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    const fileName = "食譜備份_" + new Date().toISOString().slice(0,10).replace(/-/g, "") + ".csv";
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    showNotification('CSV 檔案已匯出', 'success');
+}
 
     // 匯入 CSV
     function importCSV() {
@@ -1648,88 +1674,105 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 解析 CSV 數據
-    function parseCSVData(csvContent) {
-      try {
-        const lines = csvContent.split('\n');
-        let currentSection = '';
-        const recipesMap = new Map();
-        const customIngredients = [];
-        
-        for (let i = 0; i < lines.length; i++) {
-          let line = lines[i].trim();
-          
-          if (line === '=== 食譜數據 ===') {
-            currentSection = 'recipes';
-            continue;
-          } else if (line === '=== 食材資料庫 ===') {
-            currentSection = 'ingredients';
-            continue;
-          }
-          
-          if (line === '' || line.startsWith('===')) continue;
-          
-          if (currentSection === 'recipes' && i > 0) { // 跳過表頭
-            const row = parseCSVLine(line);
-            if (row.length >= 8) {
-              const recipeName = row[0].replace(/^"|"$/g, '');
-              if (!recipesMap.has(recipeName)) {
-                recipesMap.set(recipeName, {
-                  title: recipeName,
-                  ingredients: [],
-                  steps: row[6].replace(/^"|"$/g, '').replace(/\[\[NEWLINE\]\]/g, '\n'),
-                  timestamp: row[7],
-                  baking: {
-                    topHeat: row[8] || 200,
-                    bottomHeat: row[9] || 200,
-                    time: row[10] || 30,
-                    convection: row[11] === '是',
-                    steam: row[12] === '是'
-                  }
-                });
+// 解析 CSV 數據
+function parseCSVData(csvContent) {
+  try {
+    const lines = csvContent.split('\n');
+    let currentSection = '';
+    const recipesMap = new Map();
+    const customIngredients = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+      
+      if (line === '=== 食譜數據 ===') {
+        currentSection = 'recipes';
+        continue;
+      } else if (line === '=== 食材資料庫 ===') {
+        currentSection = 'ingredients';
+        continue;
+      }
+      
+      if (line === '' || line.startsWith('===')) continue;
+      
+      if (currentSection === 'recipes' && i > 0) { // 跳過表頭
+        const row = parseCSVLine(line);
+        if (row.length >= 8) {
+          const recipeName = row[0].replace(/^"|"$/g, '');
+          if (!recipesMap.has(recipeName)) {
+            recipesMap.set(recipeName, {
+              title: recipeName,
+              ingredients: [],
+              steps: row[6].replace(/^"|"$/g, '').replace(/\[\[NEWLINE\]\]/g, '\n'),
+              timestamp: row[7],
+              baking: {
+                topHeat: row[8] || 200,
+                bottomHeat: row[9] || 200,
+                time: row[10] || 30,
+                convection: row[11] === '是',
+                steam: row[12] === '是'
               }
-              
-              const recipe = recipesMap.get(recipeName);
-              recipe.ingredients.push({
-                group: row[1].replace(/^"|"$/g, ''),
-                name: row[2].replace(/^"|"$/g, ''),
-                weight: parseFloat(row[3]) || 0,
-                percent: row[4] ? parseFloat(row[4].replace('%', '')) / 100 : '',
-                desc: row[5].replace(/^"|"$/g, '')
-              });
-            }
-          } else if (currentSection === 'ingredients' && i > 0) { // 跳過表頭
-            const row = parseCSVLine(line);
-            if (row.length >= 2) {
-              customIngredients.push({
-                name: row[0].replace(/^"|"$/g, ''),
-                hydration: parseFloat(row[1]) || 0
-              });
+            });
+          }
+          
+          const recipe = recipesMap.get(recipeName);
+          
+          // 修復百分比處理
+          let percentValue = '';
+          const percentCell = row[4] ? row[4].replace(/^"|"$/g, '') : '';
+          
+          if (percentCell) {
+            if (percentCell.includes('%')) {
+              // 如果已經是百分比格式 (如 "75%"), 轉換為小數
+              const percentNumber = parseFloat(percentCell.replace('%', ''));
+              percentValue = !isNaN(percentNumber) ? (percentNumber / 100) : '';
+            } else {
+              // 如果是小數格式 (如 "0.75"), 直接使用
+              const decimalValue = parseFloat(percentCell);
+              percentValue = !isNaN(decimalValue) ? decimalValue : '';
             }
           }
+          
+          recipe.ingredients.push({
+            group: row[1].replace(/^"|"$/g, ''),
+            name: row[2].replace(/^"|"$/g, ''),
+            weight: parseFloat(row[3]) || 0,
+            percent: percentValue,
+            desc: row[5].replace(/^"|"$/g, '')
+          });
         }
-        
-        // 保存數據
-        allRecipes = Array.from(recipesMap.values());
-        localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(allRecipes));
-        localStorage.setItem(STORAGE_KEYS.CUSTOM_INGREDIENTS, JSON.stringify(customIngredients));
-        
-        return {
-          status: "success",
-          message: `成功匯入 ${recipesMap.size} 筆食譜數據和 ${customIngredients.length} 筆食材數據`,
-          counts: {
-            recipes: recipesMap.size,
-            ingredients: customIngredients.length
-          }
-        };
-        
-      } catch (error) {
-        return {
-          status: "error",
-          message: "CSV 解析失敗: " + error.message
-        };
+      } else if (currentSection === 'ingredients' && i > 0) { // 跳過表頭
+        const row = parseCSVLine(line);
+        if (row.length >= 2) {
+          customIngredients.push({
+            name: row[0].replace(/^"|"$/g, ''),
+            hydration: parseFloat(row[1]) || 0
+          });
+        }
       }
     }
-
+    
+    // 保存數據
+    allRecipes = Array.from(recipesMap.values());
+    localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(allRecipes));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_INGREDIENTS, JSON.stringify(customIngredients));
+    
+    return {
+      status: "success",
+      message: `成功匯入 ${recipesMap.size} 筆食譜數據和 ${customIngredients.length} 筆食材數據`,
+      counts: {
+        recipes: recipesMap.size,
+        ingredients: customIngredients.length
+      }
+    };
+    
+  } catch (error) {
+    return {
+      status: "error",
+      message: "CSV 解析失敗: " + error.message
+    };
+  }
+}
     // 解析 CSV 行
     function parseCSVLine(line) {
       const result = [];
