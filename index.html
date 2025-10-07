@@ -1121,26 +1121,30 @@ function formatPercentFrontend(p) {
         return;
       }
       
-      rows.forEach(row => {
-        const foodName = row.children[1].value;
-        if (!foodName) return;
-        
-        const percentValue = row.children[3].value || "";
-        let percentNum = "";
-        
-        if (percentValue && percentValue !== "-") {
-          const cleanValue = percentValue.replace("%", "");
-          percentNum = parseFloat(cleanValue) / 100;
-        }
-        
-        ingredients.push({
-          group: row.children[0].value, 
-          name: foodName, 
-          weight: parseFloat(row.children[2].value) || 0,
-          percent: percentNum, 
-          desc: row.children[4].value.trim()
-        });
-      });
+// 在 saveRecipe 和 saveAsNewRecipe 函數中，修改百分比處理部分：
+
+rows.forEach(row => {
+  const foodName = row.children[1].value;
+  if (!foodName) return;
+  
+  const percentValue = row.children[3].value || "";
+  let percentNum = "";
+  
+  if (percentValue && percentValue !== "-") {
+    const cleanValue = percentValue.replace("%", "");
+    const numericValue = parseFloat(cleanValue);
+    // 將百分比轉換為小數儲存
+    percentNum = !isNaN(numericValue) ? (numericValue / 100) : "";
+  }
+  
+  currentIngredients.push({
+    group: row.children[0].value, 
+    name: foodName, 
+    weight: parseFloat(row.children[2].value) || 0,
+    percent: percentNum, 
+    desc: row.children[4].value.trim()
+  });
+});
 
       if (!title || !steps || ingredients.length === 0) { 
         hideSaveProgress(); 
@@ -1263,26 +1267,30 @@ function confirmSaveAs() {
   const rows = document.querySelectorAll(".ingredient-grid");
   const currentIngredients = [];
   
-  rows.forEach(row => {
-    const foodName = row.children[1].value;
-    if (!foodName) return;
-    
-    const percentValue = row.children[3].value || "";
-    let percentNum = "";
-    
-    if (percentValue && percentValue !== "-") {
-      const cleanValue = percentValue.replace("%", "");
-      percentNum = parseFloat(cleanValue) / 100;
-    }
-    
-    currentIngredients.push({
-      group: row.children[0].value, 
-      name: foodName, 
-      weight: parseFloat(row.children[2].value) || 0,
-      percent: percentNum, 
-      desc: row.children[4].value.trim()
-    });
+// 在 saveRecipe 和 saveAsNewRecipe 函數中，修改百分比處理部分：
+
+rows.forEach(row => {
+  const foodName = row.children[1].value;
+  if (!foodName) return;
+  
+  const percentValue = row.children[3].value || "";
+  let percentNum = "";
+  
+  if (percentValue && percentValue !== "-") {
+    const cleanValue = percentValue.replace("%", "");
+    const numericValue = parseFloat(cleanValue);
+    // 將百分比轉換為小數儲存
+    percentNum = !isNaN(numericValue) ? (numericValue / 100) : "";
+  }
+  
+  currentIngredients.push({
+    group: row.children[0].value, 
+    name: foodName, 
+    weight: parseFloat(row.children[2].value) || 0,
+    percent: percentNum, 
+    desc: row.children[4].value.trim()
   });
+});
   
   showSaveProgress();
   
