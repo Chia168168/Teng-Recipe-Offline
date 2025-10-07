@@ -1440,6 +1440,7 @@ document.addEventListener('DOMContentLoaded', function() {
             recipeEl.querySelector(".edit-btn").addEventListener("click", () => editRecipe(recipe.title));
             recipeEl.querySelector(".delete-btn").addEventListener("click", () => deleteRecipe(recipe.title));
             recipeEl.querySelector(".convert-btn").addEventListener("click", () => openConversionModal(recipe.title));
+            recipeEl.querySelector(".timer-btn").addEventListener("click", () => openRecipeTimer(recipe));
             container.appendChild(recipeEl);
         });
     }
