@@ -2121,6 +2121,17 @@ document.addEventListener('DOMContentLoaded', function() {
       updateConversionToolButton();
     }
 
+// 食譜計時器功能
+function openRecipeTimer(recipe) {
+  // 在新窗口打開計時器網站
+  const timerUrl = "https://teng-recipe.onrender.com";
+  window.open(timerUrl, '_blank');
+  
+  // 可選：可以將食譜信息傳遞給計時器
+  // 這裡只是簡單地打開連結，如果需要傳遞數據，可以通過 URL 參數或其他方式
+  showNotification('已開啟食譜計時器', 'info');
+}
+    
     // 匯入模態窗口函數
     function openImportModal() {
       document.getElementById('importModal').classList.add('active');
