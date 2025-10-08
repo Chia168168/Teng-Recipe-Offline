@@ -1384,9 +1384,18 @@ document.addEventListener('DOMContentLoaded', function() {
       const recipeFilter = document.getElementById("recipeFilter");
       const currentValue = recipeFilter.value;
       
-      while (recipeFilter.options.length > 1) {
-        recipeFilter.remove(1);
-      }
+ // 確保傳入是陣列並過濾不合法項
+  if (!Array.isArray(recipesToShow)) recipesToShow = [];
+  const validRecipes = recipesToShow.filter(r => r && r.title && r.title.toString().trim() !== "食譜名稱");
+
+  // 清空現有選項（保留"全部食譜"選項）
+  if (recipeFilter) {
+    while (recipeFilter.options.length > 1) {
+      recipeFilter.remove(1);
+    }
+  } else {
+    return;
+  }
       
       const recipeNames = [...new Set(recipesToShow.map(recipe => recipe.title))];
       recipeNames.sort((a, b) => a.localeCompare(b, 'zh-Hant'));
