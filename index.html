@@ -1373,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 載入食譜列表
     function loadRecipes() {
-      allRecipes = JSON.parse(localStorage.getItem(STORAGE_KEYS.RECIPES) || '[]');
+      allRecipes = JSON.parse(localStorage.getItem(STORAGE_KEYS.RECIPES) || []).filter(r => r && r.title && r.title.toString().trim() !== "食譜名稱");
       applySort();
       updateStats();
       updateRecipeFilter(allRecipes);
